@@ -2,4 +2,4 @@
 
 Team 37
 
-Emily Beermann, Shreya Gouri, Vaishnavi Chennakeshav
+Emily Beermann, Shreya Gouri, Vaishnavi Chennakeshav, Pallavi Mallepura Kadirappa, Priya Priya
