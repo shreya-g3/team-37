@@ -1,0 +1,11 @@
+CV split summary
+========================================
+n_bins       : 166,186
+n_splits     : 5
+random_state : 42
+
+Fold 1: 132,948 train | 33,238test
+Fold 2: 132,949 train | 33,237test
+Fold 3: 132,949 train | 33,237test
+Fold 4: 132,949 train | 33,237test
+Fold 5: 132,949 train | 33,237test
