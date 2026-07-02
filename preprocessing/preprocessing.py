@@ -35,10 +35,12 @@ def preprocessing(
    X_pro = (protein_data.X.toarray()
             if hasattr(protein_data.X, "toarray")
             else protein_data.X.copy())
-
    X_pro = np.nan_to_num(X_pro.astype(float))
-   geom_mean = np.expm1(np.mean(np.log1p(X_pro + 1e-8), axis=1, keepdims=True))
-   protein_data.X = np.log1p(X_pro / (geom_mean + 1e-8))
+
+   pseudocount = 1.0  # tune this — see note below
+   log_X = np.log(X_pro + pseudocount)
+   geom_log_mean = np.mean(log_X, axis=1, keepdims=True)
+   protein_data.X = log_X - geom_log_mean
 
    # 3. Highly variable gene selection - RNA only
 
