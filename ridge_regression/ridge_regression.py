@@ -5,7 +5,7 @@ import pandas as pd
 from cross_validation_split import load_cv_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import RidgeCV
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 from scipy.stats import pearsonr
 
 
@@ -35,6 +35,7 @@ def ridge_regression(
     # cross-validated ridge regression
     fold_pearsonr = np.zeros((n_splits, Y.shape[1]))  # per fold pearson r values
     fold_r2 = np.zeros((n_splits, Y.shape[1]))  # per fold r2 values
+    fold_rmse = np.zeros((n_splits, Y.shape[1]))  # per fold rmse values
     chosen_alphas = []
 
     Y_pred_oof = np.zeros_like(Y, dtype=float)  # out-of-fold predictions
@@ -69,25 +70,32 @@ def ridge_regression(
             r, _ = pearsonr(Y_val[:, j], Y_val_pred[:, j])
             fold_pearsonr[fold, j] = r
             fold_r2[fold, j] = r2_score(Y_val[:, j], Y_val_pred[:, j])
+            fold_rmse[fold, j] = np.sqrt(mean_squared_error(Y_val[:, j], Y_val_pred[:, j]))
 
         print(f"Fold {fold + 1}/{n_splits}, "
             f"\nbest alpha={model.alpha_:.2f}, "
-            f"\nmean Pearson r={fold_pearsonr[fold].mean():.3f}")
+            f"\nmean Pearson r={fold_pearsonr[fold].mean():.3f}"
+            f"\nmean R2={fold_r2[fold].mean():.3f}, "
+            f"\nmean RMSE={fold_rmse[fold].mean():.3f}")
+
 
     # Summary
 
     mean_pearsonr_per_protein = fold_pearsonr.mean(axis=0)
     std_r_per_protein = fold_pearsonr.std(axis=0)
     mean_r2_per_protein = fold_r2.mean(axis=0)
+    mean_rmse_per_protein = fold_rmse.mean(axis=0)
 
     print(f"\nOverall mean Pearson r across all proteins: {mean_pearsonr_per_protein.mean():.3f} ± {mean_pearsonr_per_protein.std():.4f}")
     print(f"Overall mean R² across all proteins: {mean_r2_per_protein.mean():.3f}")
+    print(f"Overall mean RMSE across all proteins: {mean_rmse_per_protein.mean():.3f}")
     print(f"Chosen alphas per fold: {chosen_alphas}")
 
     results_df = pd.DataFrame({
         "mean_pearsonr": mean_pearsonr_per_protein.mean(),
         "mean_pearsonr_std": mean_pearsonr_per_protein.std(),
         "mean_r2": mean_r2_per_protein.mean(),
+        "mean_rmse": [mean_rmse_per_protein.mean()],
         "chosen_alphas": chosen_alphas
     })
 
@@ -100,6 +108,7 @@ def ridge_regression(
         "mean_pearsonr": mean_pearsonr_per_protein,
         "std_pearsonr": std_r_per_protein,
         "mean_r2": mean_r2_per_protein,
+        "mean_rmse": mean_rmse_per_protein,
     }).sort_values("mean_pearsonr", ascending=False)
 
     print(f"\nTop 10 best-predicted proteins:")
