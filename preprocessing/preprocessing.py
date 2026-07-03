@@ -37,7 +37,7 @@ def preprocessing(
             else protein_data.X.copy())
    X_pro = np.nan_to_num(X_pro.astype(float))
 
-   pseudocount = 1.0  # tune this — see note below
+   pseudocount = 1.0 
    log_X = np.log(X_pro + pseudocount)
    geom_log_mean = np.mean(log_X, axis=1, keepdims=True)
    protein_data.X = log_X - geom_log_mean
