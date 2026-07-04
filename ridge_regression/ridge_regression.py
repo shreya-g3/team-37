@@ -95,7 +95,7 @@ def ridge_regression(
         "mean_pearsonr": mean_pearsonr_per_protein.mean(),
         "mean_pearsonr_std": mean_pearsonr_per_protein.std(),
         "mean_r2": mean_r2_per_protein.mean(),
-        "mean_rmse": [mean_rmse_per_protein.mean()],
+        "mean_rmse": mean_rmse_per_protein.mean(),
         "chosen_alphas": chosen_alphas
     })
 
