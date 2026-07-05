@@ -16,6 +16,7 @@ LIMITATIONS/CHALLENGES/PROBLEMS SLIDE:
 2) sparsity
    - 94.1% of RNA values are zeroes because VISIUM fails to capture many proteins per spot
    - dropout = harder for model to learn reliable RNA-protein relationships because input signal => noisy
+   - https://biocellgen-public.svi.edu.au/mig_2019_scrnaseq-workshop/handling-sparsity.html 
 3) single patient training
    - our models trained entirely on patient A
 4) spatiality
