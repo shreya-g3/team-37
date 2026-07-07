@@ -1,16 +1,18 @@
 import json
 import numpy as np
 import anndata as ad
-from sklearn.model_selection import KFold
+from sklearn.model_selection import GroupKFold
 
 def cv_split(
     rna_path,               # path to preprocessed rna data "rna_hvg.h5ad"
     output_path,            # "outputs"
     n_splits=5,             # number of cross validation folds
-    random_state=42         # fixed seed
+    random_state=42,        # fixed seed
+    block_size=10,          # spatial patches assigned to each fold
     ):
     """
     Generate and save cross-validation split.
+    Bins are grouped into patches via KMeans. These are then split into folds
     outputs:    cv_splits.json
                 cv_splits_info.txt
     The split is saved as a JSON file containing train/test bin indices for each fold
@@ -20,40 +22,61 @@ def cv_split(
     rna_data = ad.read_h5ad(rna_path)
     n_bins = rna_data.n_obs
 
-    # 2. Generate splits
+    array_row = rna_data.obs["array_row"].to_numpy()
+    array_col = rna_data.obs["array_col"].to_numpy()
 
-    kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    # 2. Assign bins to block
+    block_row = (array_row // block_size).astype(np.int64)
+    block_col = (array_col // block_size).astype(np.int64)
+    block_id = block_row * 1_000_003 + block_col  # unique id per (block_row, block_col)
+
+    unique_blocks, block_groups = np.unique(block_id, return_inverse=True)
+    n_blocks = len(unique_blocks)
+
+    # 3. Split at block level - shuffles block order, then GroupKFold
+    rng = np.random.RandomState(random_state)
+    shuffled_block_order = rng.permutation(n_blocks)
+    block_rank = np.empty(n_blocks, dtype=int)
+    block_rank[shuffled_block_order] = np.arange(n_blocks)
+    groups = block_rank[block_groups]  # per-bin group label, shuffled
+
+    gkf = GroupKFold(n_splits=n_splits)
 
     splits = []
-    for fold, (train_idx, test_idx) in enumerate(kf.split(np.arange(n_bins))):
+    for fold, (train_idx, test_idx) in enumerate(gkf.split(np.arange(n_bins), groups=groups)):
         splits.append({
             "fold": fold,
             "train": train_idx.tolist(),
             "test": test_idx.tolist(),
         })
 
-    # 3. Save
+    # 4. Save
     split_path = f"{output_path}/cv_splits.json"
     with open(split_path, "w") as f:
         json.dump({
             "n_splits": n_splits,
             "n_bins": n_bins,
+            "n_blocks": int(n_blocks),
+            "block_size": block_size,
             "random_state": random_state,
+            "method": "GroupKFold on spatial grid blocks (array_row/array_col)",
             "splits": splits,
         }, f)
 
-    #
     info_path = f"{output_path}/cv_splits_info.txt"
     with open(info_path, "w") as f:
-        f.write(f"CV split summary\n")
+        f.write(f"Spatially-blocked CV split summary\n")
         f.write(f"{'=' * 40}\n")
         f.write(f"n_bins       : {n_bins:,}\n")
+        f.write(f"n_blocks     : {n_blocks:,}\n")
+        f.write(f"block_size   : {block_size} bins\n")
         f.write(f"n_splits     : {n_splits}\n")
         f.write(f"random_state : {random_state}\n\n")
         for s in splits:
-            f.write(f"Fold {s['fold'] + 1}: {len(s['train']):,} train | {len(s['test']):,}test\n")
+            f.write(f"Fold {s['fold'] + 1}: {len(s['train']):,} train | {len(s['test']):,} test\n")
 
     return splits
+
 
 def load_cv_split(split_path):
     """
