@@ -13,7 +13,7 @@ Models
 •	XGBoost – Emily  
 •	MLP – Priya  
 •	GNN – Vaishnavi  
-![img.png](img.png)  
+![irbm_pipeline.png](irbm_pipeline.png)  
 
 Next steps:  
 •	Upload any results and models to GitHub  
