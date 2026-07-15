@@ -1,0 +1,2 @@
+model,mean_pearsonr,std_pearsonr,mean_rmse,mean_mae,epochs,hidden,n_layers,k_neighbors,pca_dims
+GNN_V2,0.4719823280518705,0.03847116217732189,0.4262652424248781,0.31617146486585784,1000,256,3,8,256
