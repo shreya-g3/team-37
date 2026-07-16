@@ -1,2 +1,0 @@
-model,preprocessing,validation,n_folds,alpha,mean_pearson,std_pearson,mean_spearman,mean_r2,mean_rmse,mean_mae
-LASSO,Team 37 HVG + library-size normalisation + log1p + protein CLR,spatially blocked GroupKFold,5,0.01,0.3947264471175996,0.025955126277774694,0.24058036116173906,0.16539571447805926,0.43912607196882003,0.31847089115868915
