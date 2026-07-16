@@ -1,6 +1,0 @@
-h5py
-numpy
-pandas
-scipy
-scikit-learn
-
