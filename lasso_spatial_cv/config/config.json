@@ -1,0 +1,12 @@
+{
+  "rna_path": "data/train_rna.h5ad",
+  "protein_path": "data/train_pro.h5ad",
+  "hvg_path": "highly_variable_genes.txt",
+  "preprocessed_output_dir": "outputs/preprocessed",
+  "results_output_dir": "results/lasso",
+  "n_splits": 5,
+  "block_size": 10,
+  "random_state": 42,
+  "lasso_alpha": 0.01,
+  "lasso_max_iter": 500
+}
