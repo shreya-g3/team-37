@@ -8,19 +8,19 @@ def preprocessing(
     hvg_path,                   # highly variable gene list input path "outputs/highly_variable_genes.txt"
     n_hvg,                      # number of highly variable genes (2000)
     output_path,                # output directory "outputs"
-    protein_cap_pct=(1, 99)     # per protein percentile cap for z-score
+    protein_cofactor=5.0,       # arcsinh cofactor per protein (CODEX/CyTOF typical range ~5-150)
+    protein_cap_pct=(1, 99)     # per protein percentile cap for z-score, applied post-arcsinh
     ):
     """
     preprocessing of rna and protein data
     1. load data
-    2. normalise and log transform + z-normalization
+    2. normalise and log transform (RNA) & arcsinh transform + z-normalization (protein)
     3. select highly variable genes
     4. save data
 
-
     returns rna_hvg: normalised RNA, HVG subset
            rna_data: normalised RNA, all genes
-           protein_data: z-normalised proteins
+           protein_data: arcsinh-transformed, z-normalised proteins
     """
     # 1. Load data
     rna_data = ad.read_h5ad(rna_path).copy()
@@ -46,13 +46,17 @@ def preprocessing(
         else protein_data.X.copy())
     X_pro = np.nan_to_num(X_pro.astype(float))
 
-    # cap each marker - because of right-skew
-    lower_pct, upper_pct = protein_cap_pct
-    p_low = np.percentile(X_pro, lower_pct, axis=0, keepdims=True)
-    p_high = np.percentile(X_pro, upper_pct, axis=0, keepdims=True)
-    X_pro_capped = np.clip(X_pro, p_low, p_high)
+    # arcsinh transform - stabilises variance and compresses right-skew,
+    # standard for CODEX/CyTOF-style protein intensity data
+    X_pro_arcsinh = np.arcsinh(X_pro / protein_cofactor)
 
-    # z-score per marker 
+    # cap each marker post-transform - remove residual outliers
+    lower_pct, upper_pct = protein_cap_pct
+    p_low = np.percentile(X_pro_arcsinh, lower_pct, axis=0, keepdims=True)
+    p_high = np.percentile(X_pro_arcsinh, upper_pct, axis=0, keepdims=True)
+    X_pro_capped = np.clip(X_pro_arcsinh, p_low, p_high)
+
+    # z-score per marker
     marker_mean = X_pro_capped.mean(axis=0, keepdims=True)
     marker_std = X_pro_capped.std(axis=0, keepdims=True)
     marker_std[marker_std == 0] = 1.0  # avoid divide-by-zero for constant markers
@@ -81,6 +85,6 @@ def preprocessing(
 
     rna_hvg.write_h5ad(f"{output_path}/rna_hvg.h5ad")
     rna_data.write_h5ad(f"{output_path}/rna_data.h5ad")
-    protein_data.write_h5ad(f"{output_path}/protein_data_v2.h5ad")
+    protein_data.write_h5ad(f"{output_path}/protein_data_v3.h5ad")
 
     return rna_hvg, rna_data, protein_data
