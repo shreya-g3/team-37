@@ -76,14 +76,14 @@ def preprocessing(
             flavor="cell_ranger",
             subset=False)
         hvgs = list(rna_data.var_names[rna_data.var.highly_variable])
-        with open(f"{output_path}/highly_variable_genes.txt", "w") as hvg_text_file:
+        with open(f"{output_path}/highly_variable_genes_{n_hvg}.txt", "w") as hvg_text_file:
             hvg_text_file.write("\n".join(hvgs))
 
     rna_hvg = rna_data[:, hvgs].copy()
 
     # 4. Save output
 
-    rna_hvg.write_h5ad(f"{output_path}/rna_hvg.h5ad")
+    rna_hvg.write_h5ad(f"{output_path}/rna_hvg_{n_hvg}.h5ad")
     rna_data.write_h5ad(f"{output_path}/rna_data.h5ad")
     protein_data.write_h5ad(f"{output_path}/protein_data_v3.h5ad")
 
