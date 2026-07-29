@@ -1,0 +1,15 @@
+Spatially-patched, buffered CV split summary
+=============================================
+n_bins              : 166,186
+n_patches           : 17
+target_patch_bins   : 10000
+buffer_dist         : 60 bins
+n_splits            : 5
+random_state        : 42
+patch assignment    : stratified round-robin by tissue_label='protein_cluster'
+
+Fold 1: 54,323 train | 38,187 test | 73,676 buffer excluded
+Fold 2: 57,488 train | 41,185 test | 67,513 buffer excluded
+Fold 3: 80,679 train | 29,117 test | 56,390 buffer excluded
+Fold 4: 72,169 train | 29,111 test | 64,906 buffer excluded
+Fold 5: 103,974 train | 28,586 test | 33,626 buffer excluded
