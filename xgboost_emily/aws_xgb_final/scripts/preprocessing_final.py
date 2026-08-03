@@ -18,23 +18,23 @@ def preprocess_protein_train(protein_path, protein_cap_pct=(1, 99), protein_cofa
     """
     preprocess protein data: arcsinh -> percentile clip -> z-score.
     computed on train data only
-    returns processed h5ad file and stats dict for inverse z-scoring of predictions (back to raw CODEX) for submission
+    returns processed h5ad file and stats dict for inverse z-scoring of predictions (raw CODEX)
     """
     protein = ad.read_h5ad(protein_path).copy()
 
     X = protein.X.toarray() if hasattr(protein.X, "toarray") else protein.X.copy()
     X = np.nan_to_num(X.astype(float))
 
-    # arcsinh transform (fixed cofactor -- not fit, so no leakage risk either way)
+    # arcsinh transform
     X_asinh = np.arcsinh(X / protein_cofactor)
 
-    # percentile clip -- fit on train
+    # percentile clip
     lower_pct, upper_pct = protein_cap_pct
     p_low = np.percentile(X_asinh, lower_pct, axis=0, keepdims=True)
     p_high = np.percentile(X_asinh, upper_pct, axis=0, keepdims=True)
     X_clipped = np.clip(X_asinh, p_low, p_high)
 
-    # z-score -- fit on train
+    # z-score
     marker_mean = X_clipped.mean(axis=0, keepdims=True)
     marker_std = X_clipped.std(axis=0, keepdims=True)
     marker_std[marker_std == 0] = 1.0  # avoid divide-by-zero for constant markers

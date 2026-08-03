@@ -7,11 +7,11 @@ from scipy.spatial import cKDTree
 def build_neighbourhood_adjacency(coords, radius, chunk_size=5000, verbose=True):
     """
     build a sparse row-normalised adjacency/weight matrix connecting bins
-    within `radius` bin-units of each other (circular Euclidean neighbourhood).
+    within `radius` bin-units of each other (circular Euclidean neighbourhood)
 
     coords: (n_bins, 2) array of array_row/array_col values
     radius: neighbourhood radius in bin units (e.g. 3, 30, 60)
-    chunk_size: number of bins to query per batch - chunks enable progress reports
+    chunk_size: number of bins to query per batch, for progress reports
     verbose: print progress as chunks complete
 
     returns: sparse (n_bins x n_bins) CSR matrix

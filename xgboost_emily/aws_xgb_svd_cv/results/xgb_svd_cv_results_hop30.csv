@@ -1,0 +1,2 @@
+mean_pearsonr,mean_pearsonr_std,mean_r2,mean_rmse,mean_svd_explained_var,n_svd_components,hop
+0.3234743902180256,0.11246804082382554,0.07874262247217183,0.9102920966916684,0.03244723007082939,50,30

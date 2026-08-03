@@ -12,7 +12,7 @@ from sklearn.decomposition import TruncatedSVD
 from spatial_features import build_neighbourhood_adjacency
 from preprocessing_final import inverse_transform_protein
 
-# current tuned config (from CV experiments)
+# current tuned config
 DEFAULT_XGB_PARAMS = dict(
     n_estimators=550,
     max_depth=6,
@@ -26,34 +26,27 @@ DEFAULT_XGB_PARAMS = dict(
 
 
 def xgb_svd_final(
-        rna_train_path,  # PREPROCESSED "data/preprocessed/rna_train_preprocessed.h5ad"
-        rna_val_path,  # PREPROCESSED "data/preprocessed/rna_val_preprocessed.h5ad"
-        pro_train_path,  # PREPROCESSED "data/preprocessed/pro_train_preprocessed.h5ad"
-        protein_stats_path,  # "data/preprocessed/protein_normalisation_stats.pkl"
-        hop,  # neighbourhood radius in bin units (3, 30, 60), or None for no spatial features
-        out_dir,  # "results"
+        rna_train_path,             # PREPROCESSED "data/preprocessed/rna_train_preprocessed.h5ad"
+        rna_val_path,               # PREPROCESSED "data/preprocessed/rna_val_preprocessed.h5ad"
+        pro_train_path,             # PREPROCESSED "data/preprocessed/pro_train_preprocessed.h5ad"
+        protein_stats_path,         # "data/preprocessed/protein_normalisation_stats.pkl"
+        hop,                        # neighbourhood radius in bin units (3, 30, 60), or None for no spatial features
+        out_dir,                    # "results"
         device="cpu",
-        n_components=50,  # number of truncated SVD components
+        n_components=50,            # number of truncated SVD components
         svd_random_state=0,
-        xgb_params=None,  # dict to override DEFAULT_XGB_PARAMS
-        A_train_path=None,  # optional: precomputed adjacency .npz to skip in-process build
-        A_val_path=None,  # optional: precomputed adjacency .npz for val bins
+        xgb_params=None,            # dict to override DEFAULT_XGB_PARAMS
+        A_train_path=None,          # optional: precomputed adjacency .npz to skip in-process build
+        A_val_path=None,            # optional: precomputed adjacency .npz for val bins
 ):
     """
     final train-to-val pipeline
     fits truncated SVD + one XGBoost model per protein on rna_train/pro_train
     predicts pro_val
 
-    expects preprocessed input - normalize_total/log1p on RNA, arcsinh->clip->z-score fit on train protein
+    expects preprocessed input: normalized log1p RNA, arcsinh, clip, z-score protein
 
-    if A_train_path/A_val_path are given, loads those precomputed adjacency
-    matrices instead of building them here -- useful for hop=30/60, where
-    building them in-process is memory-heavy enough to have crashed the
-    instance before. Build them elsewhere (e.g. Kaggle) with build_adjacency.py,
-    download, upload to S3, then pass the local paths here.
-
-    saves per-protein models, the fitted SVD, both adjacency matrices, and the z-scored predictions to out_dir
-    saves CSV with pro_val predictions in CODEX values
+    saves per-protein models, fitted SVD, z-scored predictions and pro_val predictions in CODEX values
 
     returns (pred_pro_val, pred_adata_zscored, models_dir)
     """
@@ -157,8 +150,7 @@ def xgb_svd_final(
     del X_train, X_val, X_train_svd, X_val_svd
     gc.collect()
 
-    # 7. train one XGBoost model per protein on ALL training data, predict val.
-    # each model per protein is written to disk + trained proteins are skipped on a rerun
+    # 7. train one XGBoost model per protein on training data, predict val
     models_dir = f"{out_dir}/xgb_models{suffix}"
     os.makedirs(models_dir, exist_ok=True)
 
@@ -186,7 +178,7 @@ def xgb_svd_final(
     # 8. convert predictions back to raw CODEX-intensity units
     Y_val_pred_raw = inverse_transform_protein(Y_val_pred, protein_stats)
 
-    # keep the z-scored version around as an AnnData
+    # keep the z-scored version as AnnData
     pred_adata_zscored = ad.AnnData(
         X=Y_val_pred,
         obs=pd.DataFrame(
@@ -197,8 +189,7 @@ def xgb_svd_final(
     )
     pred_adata_zscored.write_h5ad(f"{out_dir}/protein_val_predicted_zscored{suffix}.h5ad")
 
-    # 9. build CSV: barcode,pxl_row_in_fullres,
-    # pxl_col_in_fullres,<protein columns>, raw units, column order = protein_names
+    # 9. build CSV: barcode,pxl_row_in_fullres, pxl_col_in_fullres,<protein columns>, raw units, column order = protein_names
     pred_pro_val = pd.DataFrame(index=val_obs_names)
     pred_pro_val.insert(0, "barcode", val_obs_names)
     pred_pro_val["pxl_row_in_fullres"] = val_pxl_row
