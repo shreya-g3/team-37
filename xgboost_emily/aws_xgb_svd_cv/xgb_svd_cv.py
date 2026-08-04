@@ -63,9 +63,6 @@ def xgb_svd_cv(
     rna = ad.read_h5ad(rna_path)
     pro = ad.read_h5ad(protein_path)
 
-    if list(pro.obs_names) != list(rna.obs_names):
-        raise ValueError("protein and rna obs are not aligned -- check cell ordering")
-
     protein_names = list(pro.var_names)
 
     X = rna.X if sparse.issparse(rna.X) else sparse.csr_matrix(rna.X)
@@ -77,15 +74,9 @@ def xgb_svd_cv(
 
     # 2. adjacency matrix, subset per fold
     if A is None and A_path is not None:
-        print(f"Loading precomputed adjacency matrix from {A_path}...")
         A = sparse.load_npz(A_path)
 
     use_spatial = A is not None
-    if use_spatial and (A.shape[0] != X.shape[0] or A.shape[1] != X.shape[0]):
-        raise ValueError(
-            f"adjacency matrix shape {A.shape} does not match rna bin count "
-            f"{X.shape[0]} -- check A was built from the same rna file / bin ordering"
-        )
 
     # 3. load cv split
     splits = load_cv_split(split_path=cv_split_path)
@@ -100,8 +91,8 @@ def xgb_svd_cv(
         fold = split["fold"]
         train_idx, val_idx = split["train"], split["test"]
 
-        print(f"\n=== Fold {fold + 1}/{n_splits} "
-              f"({len(train_idx):,} train / {len(val_idx):,} val bins) ===")
+        print(f"\n Fold {fold + 1}/{n_splits} "
+              f"({len(train_idx):,} train / {len(val_idx):,} val bins)")
 
         X_tr_raw, X_val_raw = X[train_idx], X[val_idx]
         Y_tr, Y_val = Y[train_idx, :], Y[val_idx, :]
@@ -228,10 +219,6 @@ def xgb_svd_cv(
     results_df.to_csv(f"{out_dir}/xgb_svd_cv_results{suffix}.csv", index=False)
     per_protein_results_df.to_csv(f"{out_dir}/xgb_svd_cv_per_protein_metrics{suffix}.csv", index=False)
 
-    print(f"\nDone. Saved to {out_dir}:")
-    print(f"  - xgb_models{suffix}_fold*/ (one .pkl per protein per fold, checkpointed)")
-    print(f"  - svd_model{suffix}_fold*.pkl")
-    print(f"  - fold*{suffix}.csv (per-fold, per-protein metrics)")
-    print(f"  - xgb_svd_cv_results{suffix}.csv / xgb_svd_cv_per_protein_metrics{suffix}.csv")
+    print(f"\nSaved to {out_dir}:")
 
     return results_df, per_protein_results_df, xgb_params

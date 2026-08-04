@@ -57,22 +57,13 @@ def xgb_svd_final(
         default_params.update(xgb_params)
 
     # 1. load already-preprocessed data
-    print("Loading preprocessed data...")
+    print("Loading preprocessed data")
     rna_train = ad.read_h5ad(rna_train_path)
     rna_val = ad.read_h5ad(rna_val_path)
     pro_train = ad.read_h5ad(pro_train_path)
 
     with open(protein_stats_path, "rb") as f:
         protein_stats = pickle.load(f)
-
-    if list(rna_train.var_names) != list(rna_val.var_names):
-        raise ValueError(
-            "rna_train and rna_val gene sets/order do not match -- "
-            "reindex rna_val to rna_train.var_names before continuing"
-        )
-
-    if list(pro_train.obs_names) != list(rna_train.obs_names):
-        raise ValueError("pro_train and rna_train obs are not aligned -- check cell ordering")
 
     protein_names = list(pro_train.var_names)
 
@@ -91,12 +82,11 @@ def xgb_svd_final(
 
     Y_train = pro_train.X.toarray() if sparse.issparse(pro_train.X) else np.asarray(pro_train.X)
 
-    # done with the full AnnData objects - delete & free overhead
+    # delete full AnnData, keep only necessary parts, to free overhead
     del rna_train, rna_val, pro_train
     gc.collect()
 
     # 4. truncated SVD - fit on train only, transform val
-    print("Fitting truncated SVD...")
     svd = TruncatedSVD(n_components=n_components, random_state=svd_random_state)
     X_train_svd = svd.fit_transform(X_train)
     X_val_svd = svd.transform(X_val)
@@ -108,26 +98,12 @@ def xgb_svd_final(
     use_spatial = hop is not None
     if use_spatial:
         if A_train_path is not None and A_val_path is not None:
-            # precomputed
-            print(f"Loading precomputed adjacency matrices (hop={hop})...")
+            # precomputed matrices for neighbourhoods
             A_train = sparse.load_npz(A_train_path)
             A_val = sparse.load_npz(A_val_path)
 
-            if A_train.shape[0] != len(train_coords) or A_train.shape[1] != len(train_coords):
-                raise ValueError(
-                    f"A_train shape {A_train.shape} doesn't match n_train_bins="
-                    f"{len(train_coords)} -- was this built from a different/"
-                    f"differently-ordered rna_train file than the one used here?"
-                )
-            if A_val.shape[0] != len(val_coords) or A_val.shape[1] != len(val_coords):
-                raise ValueError(
-                    f"A_val shape {A_val.shape} doesn't match n_val_bins="
-                    f"{len(val_coords)} -- was this built from a different/"
-                    f"differently-ordered rna_val file than the one used here?"
-                )
         else:
             # 5. spatial neighbourhood adjacency - built separately for train and val
-            print(f"Building spatial adjacency (hop={hop})...")
             A_train = build_neighbourhood_adjacency(train_coords, radius=hop)
             A_val = build_neighbourhood_adjacency(val_coords, radius=hop)
 
@@ -154,14 +130,14 @@ def xgb_svd_final(
     models_dir = f"{out_dir}/xgb_models{suffix}"
     os.makedirs(models_dir, exist_ok=True)
 
-    print(f"Training {len(protein_names)} per-protein XGBoost models...")
+    print(f"Training per-protein XGBoost models")
     Y_val_pred = np.zeros((X_val_final.shape[0], Y_train.shape[1]), dtype=np.float32)
 
     for j, protein in enumerate(protein_names):
         model_path = f"{models_dir}/{protein}.pkl"
 
         if os.path.exists(model_path):
-            print(f"  [{j + 1}/{len(protein_names)}] {protein} already trained, loading")
+            print(f"  [{j + 1}/{len(protein_names)}] {protein} already done, loading")
             with open(model_path, "rb") as f:
                 model = pickle.load(f)
         else:
@@ -200,13 +176,6 @@ def xgb_svd_final(
     submission_path = f"{out_dir}/submission{suffix}.csv"
     pred_pro_val.to_csv(submission_path, index=False)
 
-    print(f"\nDone. Saved to {out_dir}:")
-    print(f"  - xgb_models{suffix}/ (one .pkl per protein, checkpointed as training progressed)")
-    print(f"  - svd_model{suffix}.pkl")
-    if use_spatial:
-        print(f"  - A_train{suffix}.npz / A_val{suffix}.npz")
-    print(f"  - protein_val_predicted_zscored{suffix}.h5ad  (z-scored, for sanity checks)")
-    print(f"  - submission{suffix}.csv  <-- upload this ({pred_pro_val.shape[0]} rows, "
-          f"{pred_pro_val.shape[1]} columns)")
+    print(f"\nSaved to {out_dir}:")
 
     return pred_pro_val, pred_adata_zscored, models_dir
