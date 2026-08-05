@@ -5,4 +5,5 @@ XGBoost (neighbourhood radius 3 bins): 0.65
 XGBoost (neighbourhood radius 60 bins): 0.64  
 GNN: 0.59  
 GNN v2: 0.58
+GNN v3: 0.57  
 Random Forest: 0.58
