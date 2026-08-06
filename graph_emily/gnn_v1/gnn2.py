@@ -66,11 +66,7 @@ def reduce_rna_svd(rna_train, rna_val, n_components=N_SVD_COMPONENTS):
     rna_train & rna_val are preprocessed
     SVD is fit on train only then applied to both
 
-    Kept SPARSE going into TruncatedSVD - sklearn supports sparse input directly,
-    and densifying the full RNA matrix first (the previous version of this
-    function did `to_dense(rna_train.X)` before SVD) can easily need 10-20+ GB
-    for a full, un-filtered gene matrix at this many bins - more RAM than a
-    g4dn.xlarge's 16GB has, which is what was killing the run.
+    sparse for TruncatedSVD
     """
     import scipy.sparse as sp
     X_train = rna_train.X if sp.issparse(rna_train.X) else sp.csr_matrix(rna_train.X)
@@ -183,7 +179,7 @@ def predict(model, X_val, edge_index_val):
 def run_gnn(rna_train_path, pro_train_path, rna_val_path, pro_stats_path, out_path, n_epochs=N_EPOCHS):
     """
     Loads preprocessed data
-    performs SVD, graph construction, trains on 100% of data for n_epochs
+    performs SVD, graph construction, trains on all data for n_epochs
     predicts protein expression from rna_val and inverse transforms back to CODEX values
     """
     os.makedirs(out_path, exist_ok=True)  # out_path is a directory, not a file - create it up front

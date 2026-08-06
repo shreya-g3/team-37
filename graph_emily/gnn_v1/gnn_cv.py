@@ -1,43 +1,20 @@
 """
-5-fold spatial CV for the GraphSAGE GNN, structured to mirror xgb_svd_cv so results
-are directly comparable (same per-protein pearsonr / r2 / rmse, same output layout).
-
-Key differences from xgb_svd_cv, driven by how GNNs work rather than XGBoost:
-    - One model predicts all 44 proteins jointly per fold (not 44 separate models).
-    - The kNN graph is built ONCE on the full bin set (edges depend only on spatial
-      coordinates, not on RNA features or the fold split), and reused across folds.
-      Only the SVD-derived node FEATURES are refit per fold, on that fold's train
-      bins only, then applied to every node (train + held-out) - same leakage
-      control as xgb_svd_cv's per-fold SVD refit.
-    - Node features are known for held-out nodes during training (needed for message
-      passing to compute their embeddings), but the loss and all metrics are computed
-      ONLY on the held-out fold's bins, via a mask - this is standard transductive
-      GNN CV, not label leakage: no protein *label* information for held-out bins is
-      ever used in the loss or in aggregation (SAGEConv aggregates features, not
-      labels).
-    - Early stopping happens per fold on that fold's own held-out set (this doubles
-      as "how many epochs does the model need" - no separate epoch-finder pass is
-      needed once you have this).
+5-fold spatial CV for the GraphSAGE GNN
 
 Inputs:
-    rna_path      - preprocessed RNA (full dataset, all bins), e.g.
-                     "data/preprocessed/rna_preprocessed.h5ad"
-    protein_path  - preprocessed protein data, z-scored (full dataset), e.g.
-                     "data/preprocessed/pro_preprocessed.h5ad"
-    cv_split_path - cv splits json from cv_split_patches(), e.g.
-                     "outputs/cv_splits_patches.json"
-    out_dir       - "results"
+    rna_path: "data/preprocessed/rna_preprocessed.h5ad"
+    protein_path: "data/preprocessed/pro_preprocessed.h5ad"
+    cv_split_path: "outputs/cv_splits_patches.json"
+    out_dir:"results"
 
 Outputs (under out_dir):
-    fold{N}_gnn.csv                    - per-fold, per-protein metrics
-    gnn_svd_cv_results.csv             - overall summary (one row)
-    gnn_svd_cv_per_protein_metrics.csv - per-protein metrics averaged across folds
-    gnn_model_fold{N}.pt               - saved model weights + config per fold
-    svd_model_gnn_fold{N}.pkl          - saved SVD per fold (matches xgb's convention)
+    fold{N}_gnn.csv: per-fold, per-protein metrics
+    gnn_svd_cv_results.csv: overall summary (one row)
+    gnn_svd_cv_per_protein_metrics.csv: per-protein metrics averaged across folds
+    gnn_model_fold{N}.pt: saved model weights + config per fold
+    svd_model_gnn_fold{N}.pkl: saved SVD per fold (matches xgb's convention)
 
-Returns: (results_df, per_protein_results_df, gnn_params, fold_epochs)
-    fold_epochs is the list of best_epoch+1 found per fold - useful for picking a
-    single epoch count for a later full-data final run (e.g. int(np.median(fold_epochs))).
+Returns: results_df, per_protein_results_df, gnn_params, fold_epochs
 """
 
 import os
@@ -79,9 +56,9 @@ def to_dense(X):
 
 
 def build_knn_graph(coords, k=K_NEIGHBORS):
-    """Symmetric kNN graph from spatial pixel coordinates via cKDTree. Built once
-    on the full bin set - edges depend only on coordinates, not on the fold split,
-    so this is shared across all folds (unlike the per-fold SVD refit)."""
+    """
+    kNN graph from spatial pixel coordinates via cKDTree
+    """
     tree = cKDTree(coords)
     _, idx = tree.query(coords, k=k + 1)  # first column is self
     n = coords.shape[0]
@@ -122,10 +99,9 @@ def save_model(model, model_path):
 
 def train_with_early_stopping(X, Y, edge_index, train_mask, holdout_mask, gnn_params,
                                device, max_epochs=MAX_EPOCHS, patience=PATIENCE, verbose=True):
-    """One fold's training loop: early-stops on this fold's own holdout set. Returns
-    the model AT ITS BEST EPOCH (not the last epoch), plus that epoch count and the
-    holdout predictions from the best epoch - so metrics reflect the early-stopped
-    model, not whatever it looked like when patience ran out."""
+    """
+    One fold training loop, early-stops on fold's holdout set
+    """
     x_t = torch.tensor(X, dtype=torch.float32, device=device)
     y_t = torch.tensor(Y, dtype=torch.float32, device=device)
     edge_index = edge_index.to(device)
@@ -187,20 +163,12 @@ def gnn_svd_cv(
         gnn_params=None,
         max_epochs=MAX_EPOCHS,
         patience=PATIENCE,
-        max_folds=None,  # e.g. 1 or 2, to smoke-test without running all n_splits folds
+        max_folds=None,
 ):
     """
-    Cross-validated GraphSAGE GNN with per-fold truncated SVD, structured to match
-    xgb_svd_cv's inputs/outputs so results are directly comparable.
-
-    - Truncated SVD refit per fold on that fold's train bins only (same leakage
-      control as xgb_svd_cv), applied to ALL bins so held-out nodes get features.
-    - kNN graph built once on the full bin set and reused across folds.
-    - One multi-output model per fold (not one model per protein).
-    - Early stopping per fold on that fold's own holdout - this also tells you how
-      many epochs a final full-data run should use (see fold_epochs in the return).
-
-    Returns (results_df, per_protein_results_df, gnn_params, fold_epochs)
+    Cross-validated GraphSAGE GNN with per-fold truncated SVD
+    - Early stopping per fold on fold's own holdout - how many epochs to use on final run
+    Returns results_df, per_protein_results_df, gnn_params, fold_epochs
     """
     os.makedirs(out_dir, exist_ok=True)
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -212,7 +180,7 @@ def gnn_svd_cv(
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    # 1. load preprocessed data (dense here - GNN needs dense tensors regardless)
+    # 1. load preprocessed data
     print("Loading preprocessed data...")
     rna = ad.read_h5ad(rna_path)
     pro = ad.read_h5ad(protein_path)
@@ -251,9 +219,7 @@ def gnn_svd_cv(
         print(f"\nFold {fold + 1}/{n_splits} "
               f"({len(train_idx):,} train / {len(val_idx):,} val bins)")
  
-        # 4. truncated SVD, fit on fold's train bins only, transform ALL bins
-        #    (held-out nodes need features too, for message passing - just no
-        #    labels/loss on them)
+        # 4. truncated SVD, fit on fold's train bins only, transform on all data
         svd = TruncatedSVD(n_components=n_components, random_state=svd_random_state)
         svd.fit(X_raw[train_idx])
         X_svd = svd.transform(X_raw).astype(np.float32)

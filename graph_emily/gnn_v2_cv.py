@@ -1,5 +1,5 @@
 """
-5-fold spatial CV for the ResidualGraphSAGE model (gnn_v.py)
+5-fold spatial CV for the ResidualGraphSAGE model
 for comparison to plain GraphSAGE pearson r/r2/rmse + per-protein results
 
 imports ResidualGraphSAGE, build_knn_graph, combined_loss, and WarmupCosineScheduler from gnn_v.py

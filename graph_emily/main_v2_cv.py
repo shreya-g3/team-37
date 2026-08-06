@@ -1,15 +1,3 @@
-"""
-CLI wrapper for gnn_v4_svd_cv - 5-fold spatial CV for the ResidualGraphSAGE model.
-
-Usage:
-    python3 scripts/main_v4_cv.py \\
-        --rna_path data/rna_train_preprocessed.h5ad \\
-        --protein_path data/pro_train_preprocessed.h5ad \\
-        --cv_split_path data/cv_splits_patches.json \\
-        --out_dir results/ \\
-        2>&1 | tee run_v4_cv.log
-"""
-
 import argparse
 import torch
 
