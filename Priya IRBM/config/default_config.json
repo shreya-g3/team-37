@@ -1,0 +1,21 @@
+{
+  "rna": "data/train_rna.h5ad",
+  "protein": "data/train_pro.h5ad",
+  "out_dir": "reports/mlp_results",
+  "n_splits": 5,
+  "block_size": 10,
+  "n_hvg": 2000,
+  "pca_dims": 256,
+  "hidden": 512,
+  "dropout": 0.3,
+  "lr": 0.0003,
+  "weight_decay": 0.0001,
+  "epochs": 500,
+  "patience": 25,
+  "batch_size": 4096,
+  "target_scale": 150.0,
+  "loss_mse_weight": 0.5,
+  "device": "auto",
+  "seed": 42,
+  "max_folds": null
+}

@@ -1,0 +1,2 @@
+fold,mean_pearson_r,mean_rmse,mean_mae,feature_selection,n_hvg_selected,pca_components,pca_explained_variance
+1,0.09029267403593683,0.47067386589267035,0.3329487063667991,supervised_correlation,4000.0,256.0,0.7663947939872742
