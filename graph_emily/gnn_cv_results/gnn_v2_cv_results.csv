@@ -1,0 +1,2 @@
+mean_pearsonr,mean_pearsonr_std,mean_r2,mean_rmse,mean_svd_explained_var,n_svd_components,median_epochs
+0.3627605699256739,0.11808914430828323,0.09012791297652506,0.9067315228513344,0.059804465621709824,128,105
