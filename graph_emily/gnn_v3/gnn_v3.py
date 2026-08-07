@@ -303,9 +303,9 @@ def predict(model, X_val, edge_index_val, device):
 
 # Run model
 def run_gnn_v3(rna_train_path, pro_train_path, rna_val_path, pro_stats_path, cv_split_path,
-               out_path, n_components=N_SVD_COMPONENTS, k=8, hidden=256, n_layers=4, dropout=0.3,
+               out_path, n_components=N_SVD_COMPONENTS, k=8, hidden=256, n_layers=4, dropout=0.1,
                conv_type="sage", gat_heads=2, use_jk=False,
-               lr=3e-4, weight_decay=1e-3, warmup=10, loss_w=0.8, max_epochs=1000, patience=30,
+               lr=0.0003, weight_decay=0.0001, warmup=10, loss_w=0.5, max_epochs=1000, patience=30,
                epoch_finder_fold=1, device=None):
     os.makedirs(out_path, exist_ok=True)
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
