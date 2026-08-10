@@ -1,0 +1,2 @@
+mean_pearsonr,mean_pearsonr_std,mean_r2,mean_rmse,latent_dim,median_epochs
+0.2747620217586783,0.12630982576414831,0.005564206838607789,0.9524070601620285,128,27
