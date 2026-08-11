@@ -192,7 +192,7 @@ class WarmupCosineScheduler:
         return lr
 
 
-# Step 1: epoch count via ONE buffered CV fold
+# Step 1: epoch count via buffered CV fold
 def find_n_epochs(X, Y, edge_index, cv_splits, fold, model_cfg, opt_cfg, device,
                   max_epochs, patience, verbose=True):
     split = cv_splits[fold]
