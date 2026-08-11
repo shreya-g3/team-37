@@ -1,6 +1,7 @@
 import anndata as ad
 import scanpy as sc
 import numpy as np
+import pickle
 
 def preprocessing(
     rna_train_path,             # rna input path "train_rna.h5ad"
@@ -8,7 +9,7 @@ def preprocessing(
     rna_test_path,              # "test_rna.h5ad"
     protein_path,               # protein input path "train_pro.h5ad"
     output_path,                # output directory "outputs"
-    protein_cofactor=5.0,       # arcsinh cofactor per protein (CODEX/CyTOF typical range ~5-150)
+    protein_cofactor=150,       # arcsinh cofactor per protein (CODEX/CyTOF typical range ~5-150)
     ):
     """
     preprocessing of rna and protein data
@@ -63,6 +64,13 @@ def preprocessing(
     marker_std[marker_std == 0] = 1.0  # avoid divide-by-zero for constant markers
     protein_data.X = (X_pro_arcsinh - marker_mean) / marker_std
 
+    stats = dict(
+        cofactor=protein_cofactor,
+        marker_mean=marker_mean,
+        marker_std=marker_std,
+        marker_names=protein_data.var_names.to_numpy(),
+    )
+
     # 4. Save output
 
     rna_train_data.write_h5ad(f"{output_path}/rna_train_preprocessed.h5ad")
@@ -70,4 +78,15 @@ def preprocessing(
     rna_test_data.write_h5ad(f"{output_path}/rna_test_preprocessed.h5ad")
     protein_data.write_h5ad(f"{output_path}/pro_train_preprocessed.h5ad")
 
-    return rna_train_data, rna_val_data, rna_test_data, protein_data
+    with open(f"{output_path}/pro_normalisation_stats.pkl", "wb") as f:
+        pickle.dump(stats, f)
+
+    return rna_train_data, rna_val_data, rna_test_data, protein_data, stats
+
+def inverse_transform_protein(z_scored_values, stats_path):
+    with open(stats_path, "rb") as f:
+        stats = pickle.load(f)
+
+    x_arcsinh = z_scored_values * stats["marker_std"] + stats["marker_mean"]
+    x_original = np.sinh(x_arcsinh) * stats["cofactor"]
+    return x_original
