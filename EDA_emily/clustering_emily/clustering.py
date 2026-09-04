@@ -5,15 +5,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import seaborn as sns
 
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import cross_val_score
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
-from sklearn.model_selection import cross_val_predict
-from cross_validation_split import load_cv_split
-
-# stage 1: cluster proteins
+# cluster proteins
 
 def protein_clustering(
     protein_data,                   # preprocessed protein data "protein_data.h5ad"
@@ -45,7 +39,16 @@ def protein_clustering(
 
     cluster_ids = protein_data.obs["protein_cluster"].cat.codes.values
 
-    cmap = plt.get_cmap("tab20", n_clusters)
+    base_colours = ["steelblue", "coral", "indianred", "mediumslateblue", "violet", "sandybrown", "mediumorchid"]
+
+    if n_clusters > len(base_colours):
+        # fall back to a larger perceptually-distinct palette if clusters
+        # exceed the custom list, rather than silently repeating colours
+        cluster_colours = sns.color_palette("tab20", n_clusters).as_hex()
+    else:
+        cluster_colours = base_colours[:n_clusters]
+
+    cmap = mcolors.ListedColormap(cluster_colours)
     bounds = np.arange(n_clusters + 1) - 0.5
     norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
@@ -53,7 +56,7 @@ def protein_clustering(
     print(f"Clusters: {protein_data.obs['protein_cluster'].value_counts()}")
 
     # spatial plot - to show if clusters correspond with regions
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(5, 5))
 
     scatter = ax.scatter(
         protein_data.obs["array_col"],
@@ -68,7 +71,7 @@ def protein_clustering(
     cbar.ax.set_yticklabels(cluster_categories)
     cbar.set_label("Cluster")
 
-    ax.set_title("Spatial map of protein clusters", fontsize=14)
+    #ax.set_title("Spatial map of protein clusters", fontsize=14)
     ax.set_aspect("equal")
     ax.axis("off")
     plt.tight_layout()
@@ -78,8 +81,9 @@ def protein_clustering(
     sc.pl.umap(
         protein_data,
         color="protein_cluster",
-        title="Protein clusters (Leiden)",
-        legend_loc="on data"
+        #title="Protein clusters (Leiden)",
+        legend_loc="on data",
+        palette=cluster_colours
         )
 
     # dot plot
@@ -92,7 +96,7 @@ def protein_clustering(
 
     return protein_data
 
-# stage 2
+# genes per cluster
 
 def cluster_genes(
     rna_data,               # preprocessed rna data
@@ -129,45 +133,36 @@ def cluster_genes(
 
     return rna_data, markers_df
 
+# proteins per cluster
 
-# stage 3: rna classifier
-
-def rna_classifier(
-    rna_data,
-    split_path,                 # "../preprocessing/outputs/cv_splits.json"
+def cluster_proteins(
+    protein_clustered,      # protein data with "protein_cluster" already assigned
+    n_markers                # e.g. 3 for top 3 markers per cluster
     ):
     """
-    train random forest on highly variable genes from rna data to predict protein clusters
-    return trained model and feature gene list
+    Find marker proteins per cluster using Wilcoxon rank-sum test,
+    return protein data with marker results and a summary table.
     """
+    # find marker proteins per cluster using Wilcoxon rank-sum
+    sc.tl.rank_genes_groups(
+        protein_clustered, groupby="protein_cluster",
+        method="wilcoxon", key_added="rank_proteins_clusters",
+        pts=True)  # include fraction of cells expressing each protein
 
-    X = rna_data.X
-    X = X.toarray() if hasattr(X, "toarray") else X
+    # table for top proteins per cluster
+    result = protein_clustered.uns["rank_proteins_clusters"]
+    clusters = result["names"].dtype.names
+    rows = []
+    for cl in clusters:
+        names = result["names"][cl][:n_markers]
+        scores = result["scores"][cl][:n_markers]
+        pvals = result["pvals_adj"][cl][:n_markers]
+        lfc = result["logfoldchanges"][cl][:n_markers]
+        for rank, (prot, s, p, l) in enumerate(zip(names, scores, pvals, lfc), 1):
+            rows.append({"cluster": cl, "rank": rank, "protein": prot,
+                         "score": round(s, 4), "log2FC": round(l, 4),
+                         "pval_adj": f"{p:.2e}"})
 
-    # convert string labels to integers for random forest model
-    le = LabelEncoder()
-    y = le.fit_transform(rna_data.obs["protein_cluster"].astype(str))
-    print(f"Classes: {list(le.classes_)}")
+    markers_df = pd.DataFrame(rows)
 
-    model = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=15,
-        min_samples_leaf=5,
-        n_jobs=1,
-        random_state=42,
-        class_weight="balanced")
-
-    # load CV split and convert to (train_idx, test_idx) tuples
-    splits = load_cv_split(split_path)
-    cv_folds = [(np.array(s["train"]), np.array(s["test"])) for s in splits]
-
-    cv_scores = cross_val_score(model, X, y, cv=cv_folds, scoring="f1_macro", n_jobs=-1)
-    print(f"{len(cv_folds)}-fold CV F1-macro: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
-
-    y_pred_cv = cross_val_predict(model, X, y, cv=cv_folds, n_jobs=-1)
-    print(classification_report(y, y_pred_cv, target_names=le.classes_))
-
-    # fit final model on all data
-    model.fit(X, y)
-
-    return model, le
+    return protein_clustered, markers_df
