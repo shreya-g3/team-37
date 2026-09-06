@@ -1,0 +1,1 @@
+GIN model artifacts.
