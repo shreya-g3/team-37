@@ -3,7 +3,7 @@ Residual GraphSAGE/GAT for RNA -> protein
 
 ResidualGNNBlock: SAGEConv OR GATConv + LayerNorm + residual connection + dropout
 conv_type="sage" (default)
-conv_type="gat" swaps in GATConv - learns a per-neighbor attention weight instead of averaging all k neighbors uniformly
+conv_type="gat" swaps in GATConv - learns per-neighbor attention weight instead of averaging all k neighbors uniformly
 - GATConv's attention is scoped to the kNN graph's edges, not full attention over all nodes
 
 input preprocessed rna_train_preprocessed, rna_val_preprocessed, and pro_train_preprocessed

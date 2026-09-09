@@ -1,6 +1,6 @@
 """
 
-gnn_v4_aligned.py - Residual GraphSAGE for RNA -> protein, aligned to team conventions.
+gnn_v4_aligned.py - Residual GraphSAGE for RNA -> protein
 
 added
     - ResidualSAGEBlock (SAGEConv + LayerNorm + residual connection + dropout)

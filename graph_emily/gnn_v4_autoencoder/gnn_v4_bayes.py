@@ -125,8 +125,7 @@ def run_bayes_search(rna_path, protein_path, cv_split_path, out_dir, n_trials=30
     all_splits = load_cv_split(split_path=cv_split_path)
     split = all_splits[fold]
     train_idx, val_idx = np.array(split["train"]), np.array(split["test"])
-    print(f"Using fold {fold} only ({len(train_idx):,} train / {len(val_idx):,} val bins) "
-          f"for the search - NOT the full 5-fold CV, see gnn_v4_cv.py for that")
+    print(f"Using fold {fold} only ({len(train_idx):,} train / {len(val_idx):,} val bins)")
 
     def objective(trial):
         params = dict(
@@ -182,8 +181,6 @@ def run_bayes_search(rna_path, protein_path, cv_split_path, out_dir, n_trials=30
     print(f"Best trial: #{study.best_trial.number}  pearsonr = {study.best_value:.4f}  (fold {fold} only)")
     print(f"Best params: {json.dumps(best_config, indent=2)}")
     print(f"Saved to {out_dir}/bayes_search_trials.csv and {out_dir}/best_config.json")
-    print(f"This is a single-fold estimate - now run gnn_v4_cv.py's full 5-fold CV "
-          f"with these params before trusting this number.")
     print(f"{'='*60}")
 
     return study, trials_df, best_config

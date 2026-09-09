@@ -6,13 +6,7 @@ preprocessing is imported
     preprocessing_final.py: inverse_transform_protein - for inverse tranform of protein predictions
 truncated SVD is fit on rna_train_preprocessed and then applied to train and val
 
-Epoch count: NOT re-derived from a single CV fold anymore. gnn_svd_cv.py already
-ran the full 5-fold CV and found epochs=[33, 38, 86, 9, 34] (median=34) - that's a
-more robust estimate than re-running find_n_epochs() on fold 0 alone (33, close to
-the median by luck this time, but the fold-to-fold spread of 9-86 shows that isn't
-reliable in general). N_EPOCHS below is hardcoded to that median and the model
-trains directly on 100% of the data for that many epochs - no epoch-finder pass,
-no cv_split_path dependency for this script anymore.
+epochs=[33, 38, 86, 9, 34] (median=34)
 
 Inputs:
     rna_train_path: "rna_train_preprocessed.h5ad"
