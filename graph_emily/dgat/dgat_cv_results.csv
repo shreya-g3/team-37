@@ -1,0 +1,2 @@
+mean_pearsonr,mean_pearsonr_std,mean_r2,mean_rmse,mean_svd_explained_var,n_svd_components,protein_pca_variance,median_epochs
+0.2118317748086569,0.13072860780734102,-0.012069439888000489,0.958185934280672,0.059804465621709824,128,0.85,9
