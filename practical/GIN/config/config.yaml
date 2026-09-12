@@ -1,0 +1,26 @@
+paths:
+  train_rna: "Data\train_rna.h5ad"
+  train_pro: "Data\train_pro.h5ad"
+  valid_rna: "Data\valid_rna.h5ad"
+  test_rna: "Data/test_rna.h5ad"
+  preprocessing_stats: "preprocessing_stats.npz"
+  artifacts_dir: "artifacts"
+  predictions_dir: "predictions"
+
+data:
+  max_genes: 64
+  spatial_neighbors: 4
+  validation_fraction: 0.12
+  seed: 42
+
+model:
+  hidden_dim: 64
+  num_layers: 2
+  dropout: 0.15
+
+training:
+  epochs: 3
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  patience: 4
+  device: "auto"
