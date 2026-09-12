@@ -1,8 +1,0 @@
-anndata
-h5py
-numpy
-pandas
-pyyaml
-scipy
-scikit-learn
-torch
