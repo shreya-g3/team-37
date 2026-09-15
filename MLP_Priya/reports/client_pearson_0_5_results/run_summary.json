@@ -1,0 +1,10 @@
+{
+  "mean_cv_pearson_r": 0.09029267403593681,
+  "mean_cv_rmse": 0.47067386589267035,
+  "mean_cv_mae": 0.3329487063667991,
+  "n_observations": 500,
+  "n_rna_genes": 18085,
+  "n_proteins": 44,
+  "folds_run": 1,
+  "valid_rna_predictions_written": 44
+}
