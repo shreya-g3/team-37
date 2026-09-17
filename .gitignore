@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Secrets / credentials
+.aws/
+*.pem
+.env
+.env.*
+credentials
+credentials.*
+
+# Archives
+*.zip
+
+# Raw/private/large datasets
+**/data/
+*.h5ad
+
+# Large model files
+*.pt
+*.pth
+*.ckpt
+
+# OS
+.DS_Store
+Thumbs.db
